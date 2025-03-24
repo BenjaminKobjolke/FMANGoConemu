@@ -1,5 +1,5 @@
 from fman import DirectoryPaneCommand, show_alert
-from fman.url import as_human_readable
+from fman.url import as_human_readable, as_url
 import subprocess
 import os
 
@@ -15,6 +15,7 @@ from .logger import Logger
 class GoConemu(DirectoryPaneCommand):
     def __call__(self):
         # Initialize logger
+        show_alert("0")
         logger = Logger()
         log_file = logger.get_log_file_path()
         logger.log("=== New GoConemu execution ===")
@@ -53,6 +54,13 @@ class GoConemu(DirectoryPaneCommand):
                         new_path = f"{drive_letter}{remaining_path}"
                         logger.log(f"Constructed new path: {new_path}")
                         
+                        # Convert the path to a URL that fman understands
+                        new_url = as_url(new_path)
+                        logger.log(f"Setting fman pane to URL: {new_url}")
+                        
+                        # Set the pane's path to the new URL
+                        self.pane.set_path(new_url)
+                        
                         # Launch ConEmu with the new path
                         cmd = f'"{conemu_path}" -Single -Dir "{new_path}"'
                         logger.log(f"Launching ConEmu with command: {cmd}")
@@ -74,33 +82,44 @@ class GoConemu(DirectoryPaneCommand):
                             logger.log(f"Creating new network mapping for {server_share}")
                             result = create_network_mapping(free_drive, server_share)
                             logger.log(f"Result of net use command: {result}")
-                            
+                            show_alert("1")
                             if result == 0:
+                                show_alert("2")
                                 # Mapping was successful
                                 # Construct the new path with the mapped drive
                                 new_path = f"{free_drive}{remaining_path}"
                                 logger.log(f"Constructed new path: {new_path}")
+                                
+                                # Convert the path to a URL that fman understands
+                                new_url = as_url(new_path)
+                                logger.log(f"Setting fman pane to URL: {new_url}")
+                                
+                                # Set the pane's path to the new URL
+                                self.pane.set_path(new_url)
                                 
                                 # Launch ConEmu with the new path
                                 cmd = f'"{conemu_path}" -Single -Dir "{new_path}"'
                                 logger.log(f"Launching ConEmu with command: {cmd}")
                                 subprocess.call(cmd)
                             else:
+                                show_alert("3")
                                 # Mapping failed, fall back to the original behavior
                                 logger.log(f"Failed to create network mapping, falling back to original behavior")
                                 fallback_cmd = f'"{conemu_path}" -Single -Dir "{human_readable_path}"'
                                 logger.log(f"Falling back to original command: {fallback_cmd}")
                                 subprocess.call(fallback_cmd)
                         else:
+                            show_alert("4")
                             # No free drive letters found, fall back to the original behavior
                             logger.log(f"No free drive letters found, falling back to original behavior")
                             fallback_cmd = f'"{conemu_path}" -Single -Dir "{human_readable_path}"'
                             logger.log(f"Falling back to original command: {fallback_cmd}")
                             subprocess.call(fallback_cmd)
                 else:
+                    show_alert("5")
                     # Couldn't parse the network path, fall back to the batch file approach
                     logger.log("Couldn't parse network path, using pushd approach")
-                    
+                    self.pane.set_path(new_url)
                     # Create a simple batch file to handle the network path
                     temp_batch_file = create_batch_file(human_readable_path, conemu_path, log_file)
                     logger.log(f"Created batch file: {temp_batch_file}")
@@ -120,6 +139,7 @@ class GoConemu(DirectoryPaneCommand):
                 # Log the fallback command
                 fallback_cmd = f'"{conemu_path}" -Single -Dir "{human_readable_path}"'
                 logger.log(f"Falling back to original command: {fallback_cmd}")
+                show_alert("6")
                 subprocess.call(fallback_cmd)
         else:
             # Not a network path, use the original behavior

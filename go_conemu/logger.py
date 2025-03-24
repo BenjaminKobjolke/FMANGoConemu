@@ -12,7 +12,7 @@ class Logger:
         """Write a timestamped message to the log file if logging is enabled"""
         if not ENABLE_LOGGING:
             return
-            
+
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         with open(self.log_file, 'a', encoding='utf-8') as f:
             f.write(f"[{timestamp}] {message}\n")
